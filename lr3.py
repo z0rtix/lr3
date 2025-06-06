@@ -3,52 +3,62 @@ import random
 
 class Qubit:
     def __init__(self, alpha=1.0, beta=0.0):
-        # Нормировка амплитуд
+        # Нормализуем состояние кубита
         norm = math.sqrt(abs(alpha)**2 + abs(beta)**2)
         self.alpha = alpha / norm
         self.beta = beta / norm
 
     def __str__(self):
+        # Красиво печатаем состояние
         return f"[{self.alpha:.3f}|0⟩ + {self.beta:.3f}|1⟩]"
 
     def measure(self):
-        # Измерение кубита (вероятностное)
-        prob_0 = abs(self.alpha)**2
-        return 0 if random.random() < prob_0 else 1
+        # Измеряем кубит
+        return 0 if random.random() < abs(self.alpha)**2 else 1
 
-# --- Гейты Паули ---
+# Гейт Паули X (NOT)
 def apply_x(qubit):
-    new_alpha = qubit.beta
-    new_beta = qubit.alpha
-    return Qubit(new_alpha, new_beta)
+    # Меняем местами амплитуды
+    return Qubit(qubit.beta, qubit.alpha)
 
+# Гейт Паули Y 
 def apply_y(qubit):
-    new_alpha = -1j * qubit.beta
-    new_beta = 1j * qubit.alpha
-    return Qubit(new_alpha, new_beta)
+    # Добавляем фазу и меняем местами
+    return Qubit(-qubit.beta, qubit.alpha)
 
+# Гейт Паули Z
 def apply_z(qubit):
-    new_alpha = qubit.alpha
-    new_beta = -qubit.beta
-    return Qubit(new_alpha, new_beta)
+    # Инвертируем фазу |1>
+    return Qubit(qubit.alpha, -qubit.beta)
 
-# --- Двухкубитный гейт CNOT (исправленный) ---
+# Контролируемый NOT (CNOT)
 def apply_cnot(control, target):
-    # CNOT без измерения (унитарное преобразование)
-    # Если control = |1⟩, инвертируем target
-    new_target_alpha = control.alpha * target.beta + control.beta * target.alpha
-    new_target_beta = control.alpha * target.alpha + control.beta * target.beta
-    return (control, Qubit(new_target_alpha, new_target_beta))
+    # Если control= 1, применяем X к target
+    if control.measure() == 1:
+        return (control, apply_x(target))
+    return (control, target)
 
-# --- Демонстрация ---
+# Тестируем
 if __name__ == "__main__":
-    # Создаём кубиты
-    q1 = Qubit(1, 0)  # control = |0⟩
-    q2 = Qubit(1, 0)  # target = |0⟩
-    print("До CNOT: control =", q1, ", target =", q2)
-    q1, q2 = apply_cnot(q1, q2)
-    print("После CNOT (control=|0⟩): control =", q1, ", target =", q2)
+    # Проверка X гейта
+    print("Тест X-гейта:")
+    q = Qubit(1, 0)
+    print(f"До: {q}")
+    q = apply_x(q)
+    print(f"После: {q}")
 
-    q1 = apply_x(q1)  # control = |1⟩
-    q1, q2 = apply_cnot(q1, Qubit(1, 0))  # target снова |0⟩
-    print("После CNOT (control=|1⟩): control =", q1, ", target =", q2)
+    # Проверка CNOT
+    print("\nТест CNOT:")
+    control = Qubit(1, 0)
+    target = Qubit(1, 0)
+    
+    # Случай 1: control=|0>
+    print("control=|0>, target=|0>")
+    _, target_res = apply_cnot(control, target)
+    print(f"Результат: {target_res}")
+    
+    # Случай 2: control=|1>
+    control = apply_x(control)
+    print("\ncontrol=|1>, target=|0>")
+    _, target_res = apply_cnot(control, Qubit(1, 0))
+    print(f"Результат: {target_res}")
